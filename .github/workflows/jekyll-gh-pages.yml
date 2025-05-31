@@ -1,34 +1,45 @@
-name: Frontend CI
+name: CI/CD & Deploy React to GitHub Pages
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) Check out the repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js with npm cache
-        uses: actions/setup-node@v4
+      # 2) Set up Node.js (adjust node-version if needed)
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+          node-version: "18.x"
+          cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
+      # 3) Install dependencies
+      - name: Install npm dependencies
+        run: npm install
 
-      - name: Build project
+      # 4) Build your React app
+      - name: Build React app
         run: npm run build
 
-      - name: Deploy project
-        if: github.event_name == 'push'
+      # 5) Configure Git identity for gh-pages
+      - name: Configure Git author
+        run: |
+          # Use GITHUB_ACTOR as the committer name,
+          # and a GitHub no-reply email for security.
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+      # 6) Deploy to GitHub Pages using gh-pages
+      - name: Deploy to GitHub Pages
         run: npm run deploy
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Note: `npm run deploy` should be defined in package.json as:
+        #   "predeploy": "npm run build",
+        #   "deploy": "gh-pages -d build"
