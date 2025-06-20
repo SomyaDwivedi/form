@@ -250,7 +250,7 @@ const showLoading = useCallback((variant: "create" | "update" | "delete" | "fetc
     initializeAddMode();
     setCurrentIndex(0);
     setError("");
-    console.log("🆕 Switched to CREATE mode - sidebar should show only new questions");
+    console.log("🆕 Switched to Add mode - sidebar should show only new questions");
   };
 
   const switchToEditMode = async () => {
@@ -299,7 +299,7 @@ const showLoading = useCallback((variant: "create" | "update" | "delete" | "fetc
     setCurrentIndex(updatedQuestions.length - 1);
     
     if (isEmpty) setError("");
-    console.log(`➕ Added new question to ${level} level in CREATE mode`);
+    console.log(`➕ Added new question to ${level} level`);
   };
 
   const onDeleteCurrent = async () => {
@@ -454,17 +454,17 @@ const showLoading = useCallback((variant: "create" | "update" | "delete" | "fetc
   // Submission handlers
   const handleCreateNew = () => {
     showConfirmationDialog(
-      "Create Survey Questions",
-      "This will create new survey questions. Do you want to continue?",
+      "Add Survey Questions",
+      "This will add new questions to the existing survey. Do you want to continue?",
       async () => {
         const allNewQuestions = LEVELS.flatMap(lvl => newQuestionsByLevel[lvl]).filter(
           q => q.question.trim() && q.questionCategory && q.questionLevel && !q.questionID
         );
         
-        showLoading("create", "Creating Questions...");
+        showLoading("create", "Adding Questions...");
         try {
           await createQuestions(allNewQuestions);
-          console.log(`✅ Created ${allNewQuestions.length} new questions`);
+          console.log(`✅ Added ${allNewQuestions.length} new questions`);
           await switchToEditMode();
         } catch (error) {
           console.error("Creation failed:", error);
