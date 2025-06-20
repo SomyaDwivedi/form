@@ -7,8 +7,9 @@ import {
   Title,
   Tooltip,
   Legend,
+  ArcElement,
 } from "chart.js";
-import { Bar } from "react-chartjs-2";
+import { Bar, Pie } from "react-chartjs-2";
 import { Question, Answer } from "../../types/types";
 import { StatsOverview } from "./StatsOverview";
 import { ChartContainer } from "./ChartContainer";
@@ -20,7 +21,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 );
 
 const LEVELS = ["Beginner", "Intermediate", "Advanced"] as const;
@@ -139,10 +141,16 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
         label: "Answers Submitted",
         data: levelAnswerCounts,
         backgroundColor: [
-          "#a78bfa", // light purple (Beginner)
-          "#8b5cf6", // medium purple (Intermediate)
-          "#6d28d9", // deep purple (Advanced)
+          "#e9d5ff", // very light purple (Beginner)
+          "#c4b5fd", // light purple (Intermediate)
+          "#a78bfa", // medium light purple (Advanced)
         ],
+        borderColor: [
+          "#d8b4fe",
+          "#a78bfa",
+          "#8b5cf6",
+        ],
+        borderWidth: 2,
         borderRadius: 12,
       },
     ],
@@ -287,16 +295,64 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
     );
   }
 
-  // Most skipped questions (top 3 by skip rate)
-  const mostSkipped = [...questions]
+  // Calculate correct and incorrect responses from Input questions only
+  const inputQuestionsForPie = questions.filter(q => q.questionType === "Input");
+  
+  let correctResponses = 0;
+  let incorrectResponses = 0;
+  
+  inputQuestionsForPie.forEach(question => {
+    if (question.answers && Array.isArray(question.answers)) {
+      question.answers.forEach(answer => {
+        if (answer.isCorrect === true) {
+          correctResponses++;
+        } else if (answer.isCorrect === false) {
+          incorrectResponses++;
+        }
+      });
+    }
+  });
+
+  // If we have a mismatch, adjust to use totalAnswered
+  const totalAnsweredFromInputs = correctResponses + incorrectResponses;
+  
+  // Use existing totalAnswered and proportionally distribute correct/incorrect
+  const finalCorrectResponses = totalAnsweredFromInputs > 0 
+    ? Math.round((correctResponses / totalAnsweredFromInputs) * totalAnswered)
+    : 0;
+  const finalIncorrectResponses = totalAnswered - finalCorrectResponses;
+
+  // Pie chart data for response distribution
+  const responseDistributionData = {
+    labels: ["Correct Answers", "Incorrect Answers", "Skipped"],
+    datasets: [
+      {
+        label: "Response Distribution",
+        data: [finalCorrectResponses, finalIncorrectResponses, totalSkipped],
+        backgroundColor: [
+          "#d1fae5", // very light green for correct
+          "#fee2e2", // very light red for incorrect
+          "#fef3c7", // very light amber for skipped
+        ],
+        borderColor: [
+          "#86efac", // soft green border
+          "#fca5a5", // soft red border
+          "#fde68a", // soft amber border
+        ],
+        borderWidth: 2,
+      },
+    ],
+  };
+
+  // Filter for Input questions only and calculate skip rates
+  const inputQuestions = questions.filter(q => q.questionType === "Input");
+
+  const mostSkippedInputQuestions = inputQuestions
     .map((q) => {
       const total = (q.timesAnswered || 0) + (q.timesSkipped || 0);
       return {
         ...q,
-        skipRate:
-          total > 0
-            ? (((q.timesSkipped || 0) / total) * 100).toFixed(1)
-            : "0.0",
+        skipRate: total > 0 ? (((q.timesSkipped || 0) / total) * 100).toFixed(1) : "0.0",
       };
     })
     .sort((a, b) => Number(b.skipRate) - Number(a.skipRate))
@@ -332,10 +388,40 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             />
           </div>
         </div>
+
+        <div className="bg-white p-4 rounded shadow w-full max-w-[400px]">
+          <div className="font-semibold text-lg mb-2 text-center">
+            Overall Response Distribution
+          </div>
+          <div className="h-[250px]">
+            <Pie
+              data={responseDistributionData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom',
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: function(context) {
+                        const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+                        const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : '0.0';
+                        return `${context.label}: ${percentage}%`;
+                      }
+                    }
+                  }
+                },
+              }}
+              height={250}
+            />
+          </div>
+        </div>
       </ChartContainer>
 
       <div className="mt-12 max-w-4xl mx-auto grid grid-cols-1 gap-8">
-        {/* Most Skipped Questions */}
+        {/* Most Skipped Questions (Input Type Only) */}
         <div className="bg-white shadow rounded-xl flex flex-col w-full">
           <div className="p-6 border-b font-semibold text-gray-900 text-lg flex items-center gap-2">
             <span role="img" aria-label="skipped">
@@ -351,26 +437,27 @@ const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
               </tr>
             </thead>
             <tbody>
-              {mostSkipped.length === 0 && (
+              {inputQuestions.length === 0 ? (
                 <tr>
                   <td className="px-6 py-3 text-gray-500" colSpan={2}>
-                    No skipped questions.
+                    No questions found.
                   </td>
                 </tr>
+              ) : (
+                mostSkippedInputQuestions.map((q, idx) => (
+                  <tr
+                    key={q.questionID || idx}
+                    className={idx % 2 ? "bg-purple-25" : "bg-white"}
+                  >
+                    <td className="px-6 py-3">
+                      {q.question.length > 40
+                        ? q.question.slice(0, 40) + "..."
+                        : q.question}
+                    </td>
+                    <td className="px-6 py-3">{q.skipRate}%</td>
+                  </tr>
+                ))
               )}
-              {mostSkipped.map((q, idx) => (
-                <tr
-                  key={q.questionID || idx}
-                  className={idx % 2 ? "bg-purple-25" : "bg-white"}
-                >
-                  <td className="px-6 py-3">
-                    {q.question.length > 40
-                      ? q.question.slice(0, 40) + "..."
-                      : q.question}
-                  </td>
-                  <td className="px-6 py-3">{q.skipRate}%</td>
-                </tr>
-              ))}
             </tbody>
           </table>
         </div>
