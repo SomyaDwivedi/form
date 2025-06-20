@@ -80,7 +80,7 @@ const AdminEmptyState: React.FC<AdminEmptyStateProps> = ({
                   Getting Started:
                 </p>
                 <ul className="text-blue-700 text-sm space-y-2 text-left">
-                  <li>• Choose a difficulty level below to create your first question</li>
+                  <li>• Choose a difficulty level below to add your first question</li>
                   <li>• Fill in the question details and category</li>
                   <li>• Use the Preview button to review before saving</li>
                   <li>• Switch to Analytics once you have responses</li>
@@ -128,7 +128,7 @@ const AdminEmptyState: React.FC<AdminEmptyStateProps> = ({
         <div className="mt-8 pt-6 border-t border-gray-200">
           <p className="text-gray-400 text-sm">
             {isEmpty 
-              ? "Questions will appear in the sidebar once you create them"
+              ? "Questions will appear in the sidebar once you add them"
               : "Build comprehensive surveys with multiple difficulty levels"
             }
           </p>
